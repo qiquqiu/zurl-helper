@@ -12,12 +12,12 @@
 // @connect      *
 // ==/UserScript==
 
-(function () {
+(function() {
     'use strict';
 
     // --- 配置菜单 ---
     GM_registerMenuCommand('设置 Zurl 服务地址', () => {
-        let zurlApiUrl = prompt('请输入您的 Zurl 服务地址 (例如: http://192.168.150.101:3080)', GM_getValue('zurlApiUrl', ''));
+        let zurlApiUrl = prompt('请输入您的 Zurl 服务地址 (例如: https://link.qiquqiu.xyz)', GM_getValue('zurlApiUrl', ''));
         if (zurlApiUrl) {
             zurlApiUrl = zurlApiUrl.trim();
             if (!zurlApiUrl.startsWith('http://') && !zurlApiUrl.startsWith('https://')) {
@@ -68,26 +68,29 @@
                 .zurl-form-group { margin-bottom: 18px; }
                 .zurl-label { display: block; margin-bottom: 8px; font-size: 14px; font-weight: 500; color: #555; }
                 .zurl-input {
-                    width: 100%; padding: 10px 12px; border: 1px solid #ccc; border-radius: 6px;
+                    width: 100%; padding: 9px 12px; border: 1px solid #ccc; border-radius: 6px;
                     font-size: 14px; transition: border-color 0.2s, box-shadow 0.2s;
                 }
                 .zurl-input:focus { border-color: #007bff; box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.2); outline: none; }
-                .zurl-result-wrapper { display: flex; align-items: center; }
+                .zurl-result-wrapper { display: flex; align-items: stretch; }
                 .zurl-result-wrapper .zurl-input { border-top-right-radius: 0; border-bottom-right-radius: 0; background: #e9ecef; }
                 .zurl-btn {
-                    padding: 10px 16px; border: none; border-radius: 6px; cursor: pointer;
-                    font-size: 15px; font-weight: 500; transition: background-color 0.2s, transform 0.1s;
+                    border: none; border-radius: 6px; cursor: pointer;
+                    font-size: 15px; font-weight: 500; transition: background-color 0.2s, transform 0.1s, filter 0.2s;
+                    display: inline-flex; align-items: center; justify-content: center;
                 }
                 .zurl-btn:active { transform: scale(0.98); }
-                .zurl-btn-primary { background: #007bff; color: white; }
+                .zurl-btn-primary { background: #007bff; color: white; padding: 9px 15px; }
                 .zurl-btn-primary:hover { background: #0056b3; }
-                .zurl-btn-secondary { background: #6c757d; color: white; margin-left: 10px; }
+                .zurl-btn-secondary { background: #6c757d; color: white; margin-left: 10px; padding: 9px 15px; }
                 .zurl-btn-secondary:hover { background: #5a6268; }
-                /* --- 调整复制按钮的样式 --- */
                 .zurl-btn-copy {
-                    border-top-left-radius: 0; border-bottom-left-radius: 0;
-                    padding-left: 14px; padding-right: 14px; /* 减小水平内边距 */
+                    border-top-left-radius: 0;
+                    border-bottom-left-radius: 0;
+                    padding: 0 14px;
+                    flex-shrink: 0;
                 }
+                .zurl-btn-copy:hover { filter: brightness(1.1); }
                 .zurl-footer { text-align: right; margin-top: 25px; }
                 .zurl-status { font-size: 14px; min-height: 20px; text-align: left; }
             </style>
@@ -101,7 +104,7 @@
                         </div>
                         <div class="zurl-form-group">
                             <label for="ttl_days" class="zurl-label">有效期 (天):</label>
-                            <input type="number" id="ttl_days" class="zurl-input" value="7" min="0">
+                            <input type="number" id="ttl_days" class="zurl-input" placeholder="留空则永不过期" min="0">
                         </div>
                         <div class="zurl-form-group">
                             <label for="short_url" class="zurl-label">自定义短链接 (可选):</label>
@@ -127,6 +130,9 @@
         const modalContainer = document.createElement('div');
         modalContainer.innerHTML = modalHtml;
         document.body.appendChild(modalContainer);
+
+        // --- 自动填充当前网页的 URL ---
+        document.getElementById('long_url_input').value = window.location.href;
 
         const overlay = document.getElementById('zurl-modal-overlay-final');
         const cancelButton = document.getElementById('zurl-cancel-btn');
@@ -155,10 +161,19 @@
                 return;
             }
 
-            const ttl_days = parseInt(document.getElementById('ttl_days').value, 10) || 0;
+            const ttlDaysValue = document.getElementById('ttl_days').value.trim();
             const short_url = document.getElementById('short_url').value.trim();
-            const requestBody = { long_url: longUrl, ttl_days: ttl_days };
-            if (short_url) { requestBody.short_url = short_url; }
+
+            // --- 构建请求体，只有当用户输入了有效期时才添加 ttl_days ---
+            const requestBody = { long_url: longUrl };
+
+            if (short_url) {
+                requestBody.short_url = short_url;
+            }
+            // 只有当输入框不为空时，才添加 ttl_days 字段
+            if (ttlDaysValue !== '') {
+                requestBody.ttl_days = parseInt(ttlDaysValue, 10) || 0; // 如果输入了非数字，则默认为0（不过期）
+            }
 
             statusText.textContent = '生成中...';
             statusText.style.color = '#6c757d';
@@ -169,7 +184,7 @@
                 url: `${zurlApiUrl}/api/shorten_url`,
                 headers: { "Content-Type": "application/json", "Authorization": `Bearer ${apiKey}` },
                 data: JSON.stringify(requestBody),
-                onload: function (response) {
+                onload: function(response) {
                     submitButton.disabled = false;
                     statusText.textContent = '';
                     try {
@@ -189,7 +204,7 @@
                         statusText.textContent = `请求失败 (${response.status}): ${response.statusText}`;
                     }
                 },
-                onerror: function (error) {
+                onerror: function(error) {
                     submitButton.disabled = false;
                     statusText.style.color = '#dc3545';
                     statusText.textContent = `网络错误: ${error.statusText || '无法连接到服务'}`;

@@ -37,8 +37,8 @@
 ## 🔧 安装
 
 1.  进入油猴管理界面。
-2.  点击右上角的 `加号` 按钮添加新脚本，或直接访问[此链接](extension://dhdgffkkebhmkfjojejmpbldmpobfkfo/options.html#nav=new-user-script+editor)（以Edge浏览器的油猴扩展为例）。
-3.  **复制粘贴**最新的 **[zurl—helper.js]([zurl-helper/tampermonkey/zurl-helper.js at main · qiquqiu/zurl-helper (github.com)](https://github.com/qiquqiu/zurl-helper/blob/main/tampermonkey/zurl-helper.js))** 完整代码，`Ctrl + S` 保存、重启浏览器即可。
+2.  点击右上角的 `加号` 按钮添加新脚本，或直接访问此链接：extension://dhdgffkkebhmkfjojejmpbldmpobfkfo/options.html#nav=new-user-script+editor（以*Edge*浏览器的油猴扩展为例）。
+3.  **复制粘贴**最新的 **[zurl—helper.js](https://github.com/qiquqiu/zurl-helper/blob/main/tampermonkey/zurl-helper.js)** 完整代码，`Ctrl + S` 保存、重启浏览器即可。
 
 ## ⚙️ 配置与使用
 

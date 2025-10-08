@@ -1,8 +1,8 @@
 // ==UserScript==
-// @name         Zurl 短链接助手
+// @name         Zurl-helper: 短链助手
 // @namespace    http://tampermonkey.net/
 // @version      1.0
-// @description  通过油猴菜单手动弹窗，为任意链接生成短链接，拥有精美的UI和精确的响应处理。
+// @description  Zurl短链接助手：通过油猴菜单手动弹窗，为任意链接生成短链接，拥有人性化的UI和精确的响应处理，并自动适配夜间模式。
 // @author       qiquqiu
 // @match        *://*/*
 // @grant        GM_setValue
@@ -57,6 +57,7 @@
 
         const modalHtml = `
             <style>
+                /* --- 默认浅色模式样式 --- */
                 .zurl-modal-container * { box-sizing: border-box; }
                 .zurl-modal-content {
                     background: #fdfdfd; padding: 25px 30px; border-radius: 12px;
@@ -69,7 +70,7 @@
                 .zurl-label { display: block; margin-bottom: 8px; font-size: 14px; font-weight: 500; color: #555; }
                 .zurl-input {
                     width: 100%; padding: 9px 12px; border: 1px solid #ccc; border-radius: 6px;
-                    font-size: 14px; transition: border-color 0.2s, box-shadow 0.2s;
+                    font-size: 14px; transition: border-color 0.2s, box-shadow 0.2s; background-color: #fff; color: #212529;
                 }
                 .zurl-input:focus { border-color: #007bff; box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.2); outline: none; }
                 .zurl-result-wrapper { display: flex; align-items: stretch; }
@@ -84,17 +85,41 @@
                 .zurl-btn-primary:hover { background: #0056b3; }
                 .zurl-btn-secondary { background: #6c757d; color: white; margin-left: 10px; padding: 9px 15px; }
                 .zurl-btn-secondary:hover { background: #5a6268; }
-                .zurl-btn-copy {
-                    border-top-left-radius: 0;
-                    border-bottom-left-radius: 0;
-                    padding: 0 14px;
-                    flex-shrink: 0;
-                }
+                .zurl-btn-copy { border-top-left-radius: 0; border-bottom-left-radius: 0; padding: 0 14px; flex-shrink: 0; }
                 .zurl-btn-copy:hover { filter: brightness(1.1); }
                 .zurl-footer { text-align: right; margin-top: 25px; }
                 .zurl-status { font-size: 14px; min-height: 20px; text-align: left; }
+
+                /* --- 夜间模式 (Dark Mode) 样式 --- */
+                @media (prefers-color-scheme: dark) {
+                    .zurl-modal-content {
+                        background-color: #2b2b2b;
+                        border-color: #444;
+                    }
+                    .zurl-modal-header, .zurl-label {
+                        color: #e0e0e0;
+                    }
+                    .zurl-input {
+                        background-color: #3c3c3c;
+                        color: #f0f0f0;
+                        border-color: #666;
+                    }
+                    .zurl-input::placeholder {
+                        color: #888;
+                    }
+                    .zurl-result-wrapper .zurl-input {
+                        background-color: #222;
+                    }
+                    .zurl-btn-secondary {
+                        background-color: #555;
+                        color: #fff;
+                    }
+                    .zurl-btn-secondary:hover {
+                        background-color: #666;
+                    }
+                }
             </style>
-            <div id="zurl-modal-overlay-final" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.4); z-index: 2147483647; display: flex; align-items: center; justify-content: center;">
+            <div id="zurl-modal-overlay-final" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); z-index: 2147483647; display: flex; align-items: center; justify-content: center;">
                 <div class="zurl-modal-container">
                     <div class="zurl-modal-content">
                         <h3 class="zurl-modal-header">生成 Zurl 短链接</h3>
@@ -131,7 +156,6 @@
         modalContainer.innerHTML = modalHtml;
         document.body.appendChild(modalContainer);
 
-        // --- 自动填充当前网页的 URL ---
         document.getElementById('long_url_input').value = window.location.href;
 
         const overlay = document.getElementById('zurl-modal-overlay-final');
@@ -163,20 +187,19 @@
 
             const ttlDaysValue = document.getElementById('ttl_days').value.trim();
             const short_url = document.getElementById('short_url').value.trim();
-
-            // --- 构建请求体，只有当用户输入了有效期时才添加 ttl_days ---
             const requestBody = { long_url: longUrl };
 
             if (short_url) {
                 requestBody.short_url = short_url;
             }
-            // 只有当输入框不为空时，才添加 ttl_days 字段
             if (ttlDaysValue !== '') {
-                requestBody.ttl_days = parseInt(ttlDaysValue, 10) || 0; // 如果输入了非数字，则默认为0（不过期）
+                requestBody.ttl_days = parseInt(ttlDaysValue, 10) || 0;
             }
-
+            
+            // 适配夜间模式的“生成中”文字颜色
+            const isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
             statusText.textContent = '生成中...';
-            statusText.style.color = '#6c757d';
+            statusText.style.color = isDarkMode ? '#999' : '#6c757d';
             submitButton.disabled = true;
 
             GM_xmlhttpRequest({
@@ -193,10 +216,10 @@
                             const finalUrl = `${zurlApiUrl}/${result.data.short_url}`;
                             document.getElementById('zurl-result-container').style.display = 'block';
                             resultInput.value = finalUrl;
-                            statusText.style.color = '#28a745';
+                            statusText.style.color = '#28a745'; // 绿色在两种模式下都清晰
                             statusText.textContent = '生成成功！';
                         } else {
-                            statusText.style.color = '#dc3545';
+                            statusText.style.color = '#dc3545'; // 红色在两种模式下都清晰
                             statusText.textContent = `错误: ${result.msg || result.message || '未知API错误'}`;
                         }
                     } catch (e) {

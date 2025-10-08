@@ -2,7 +2,7 @@
 // @name         Zurl 短链接助手
 // @namespace    http://tampermonkey.net/
 // @version      1.0
-// @description  通过油猴菜单手动弹窗，为任意链接生成短链接，拥有更美观的UI和精确的响应处理。
+// @description  通过油猴菜单手动弹窗，为任意链接生成短链接，拥有精美的UI和精确的响应处理。
 // @author       qiquqiu
 // @match        *://*/*
 // @grant        GM_setValue
@@ -12,7 +12,7 @@
 // @connect      *
 // ==/UserScript==
 
-(function() {
+(function () {
     'use strict';
 
     // --- 配置菜单 ---
@@ -55,12 +55,11 @@
             return;
         }
 
-        // --- 使用新的美化UI ---
         const modalHtml = `
             <style>
                 .zurl-modal-container * { box-sizing: border-box; }
                 .zurl-modal-content {
-                    background: #f9f9f9; padding: 25px 30px; border-radius: 12px;
+                    background: #fdfdfd; padding: 25px 30px; border-radius: 12px;
                     box-shadow: 0 5px 25px rgba(0,0,0,0.15); width: 520px;
                     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
                     border: 1px solid #e0e0e0;
@@ -76,7 +75,7 @@
                 .zurl-result-wrapper { display: flex; align-items: center; }
                 .zurl-result-wrapper .zurl-input { border-top-right-radius: 0; border-bottom-right-radius: 0; background: #e9ecef; }
                 .zurl-btn {
-                    padding: 10px 18px; border: none; border-radius: 6px; cursor: pointer;
+                    padding: 10px 16px; border: none; border-radius: 6px; cursor: pointer;
                     font-size: 15px; font-weight: 500; transition: background-color 0.2s, transform 0.1s;
                 }
                 .zurl-btn:active { transform: scale(0.98); }
@@ -84,7 +83,11 @@
                 .zurl-btn-primary:hover { background: #0056b3; }
                 .zurl-btn-secondary { background: #6c757d; color: white; margin-left: 10px; }
                 .zurl-btn-secondary:hover { background: #5a6268; }
-                .zurl-btn-copy { border-top-left-radius: 0; border-bottom-left-radius: 0; }
+                /* --- 调整复制按钮的样式 --- */
+                .zurl-btn-copy {
+                    border-top-left-radius: 0; border-bottom-left-radius: 0;
+                    padding-left: 14px; padding-right: 14px; /* 减小水平内边距 */
+                }
                 .zurl-footer { text-align: right; margin-top: 25px; }
                 .zurl-status { font-size: 14px; min-height: 20px; text-align: left; }
             </style>
@@ -166,30 +169,27 @@
                 url: `${zurlApiUrl}/api/shorten_url`,
                 headers: { "Content-Type": "application/json", "Authorization": `Bearer ${apiKey}` },
                 data: JSON.stringify(requestBody),
-                onload: function(response) {
+                onload: function (response) {
                     submitButton.disabled = false;
                     statusText.textContent = '';
                     try {
                         const result = JSON.parse(response.responseText);
-                        // --- 根据响应的JSON格式进行处理 ---
                         if (response.status === 200 && result.code === 200 && result.data && result.data.short_url) {
-                            const finalUrl = `${zurlApiUrl}/${result.data.short_url}`; // 拼接成完整URL
+                            const finalUrl = `${zurlApiUrl}/${result.data.short_url}`;
                             document.getElementById('zurl-result-container').style.display = 'block';
                             resultInput.value = finalUrl;
                             statusText.style.color = '#28a745';
                             statusText.textContent = '生成成功！';
                         } else {
-                            // 处理API返回的业务错误，例如自定义链接已存在
                             statusText.style.color = '#dc3545';
                             statusText.textContent = `错误: ${result.msg || result.message || '未知API错误'}`;
                         }
                     } catch (e) {
-                        // 处理非JSON响应或网络层面的错误
                         statusText.style.color = '#dc3545';
                         statusText.textContent = `请求失败 (${response.status}): ${response.statusText}`;
                     }
                 },
-                onerror: function(error) {
+                onerror: function (error) {
                     submitButton.disabled = false;
                     statusText.style.color = '#dc3545';
                     statusText.textContent = `网络错误: ${error.statusText || '无法连接到服务'}`;
